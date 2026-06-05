@@ -27,7 +27,6 @@ def build_ui():
     </style>''')
 
     # Main Container - Centers contents vertically and horizontally.
-    # When you resize the window, the player will float in the center smoothly.
     with ui.card().classes('w-full h-screen q-pa-md bg-grey-10 text-white column items-center justify-center no-shadow').style('border-radius: 0; box-sizing: border-box;'):
         
         # Titlebar
@@ -107,18 +106,23 @@ async def open_file():
         update_progress()
 
 def open_config():
-    with ui.dialog().props('persistent') as dialog, ui.card().classes('bg-grey-10 text-white q-pa-lg').style('border-radius: 10px;'):
-        ui.label("Configuration").classes('text-h6')
+    # Constrain dialog width so it fits the settings tightly
+    with ui.dialog().props('persistent').style('width: 320px') as dialog, \
+         ui.card().classes('bg-grey-10 text-white q-pa-md').style('border-radius: 10px; width: 100%'):
         
-        with ui.row().classes('q-gutter-md items-center q-mt-md'):
-            ui.label("Voice:").classes('text-weight-bold')
+        ui.label("Configuration").classes('text-h6 text-center w-full')
+        
+        # Use no-wrap to keep label and dropdown on the same line
+        with ui.row().classes('w-full items-center q-mt-md no-wrap'):
+            ui.label("Voice:").classes('text-weight-bold').style('min-width: 50px')
             voice_options = ['af_heart', 'af_bella', 'af_nicole', 'am_adam', 'am_michael']
-            voice_select = ui.select(voice_options, value=temporary.app_state["voice"]).classes('min-w-[150px] bg-grey-9')
+            # Dropdown fills remaining space
+            voice_select = ui.select(voice_options, value=temporary.app_state["voice"]).classes('w-full bg-grey-9')
             
-        with ui.row().classes('q-gutter-md items-center q-mt-sm'):
-            ui.label("Speed:").classes('text-weight-bold')
+        with ui.row().classes('w-full items-center q-mt-sm no-wrap'):
+            ui.label("Speed:").classes('text-weight-bold').style('min-width: 50px')
             speed_options = ['0.5x', '0.75x', '1.0x', '1.25x', '1.5x', '2.0x']
-            speed_select = ui.select(speed_options, value=f'{temporary.app_state["speed"]}x').classes('min-w-[150px] bg-grey-9')
+            speed_select = ui.select(speed_options, value=f'{temporary.app_state["speed"]}x').classes('w-full bg-grey-9')
         
         with ui.row().classes('w-full justify-end q-mt-md'):
             ui.button('Cancel', on_click=dialog.close).props('flat color=white')

@@ -1,13 +1,22 @@
 import sys
 import os
-from nicegui import ui, app
-from scripts import displays
-from scripts import utility
-from scripts import temporary
 
 # ===============================================================================
 #     Simple-PDF-Player: Launcher
 # ===============================================================================
+
+# FIX for pythonw.exe: If running in silent mode (pythonw), sys.stdout and 
+# sys.stderr are None. Attempting to print() will crash the app silently.
+# This redirects any stray print statements to the void.
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, 'w')
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, 'w')
+
+from nicegui import ui, app
+from scripts import displays
+from scripts import utility
+from scripts import temporary
 
 def main():
     # Load configuration (Loads window size from last session)
