@@ -19,5 +19,9 @@ Its a WinAmp style player of PDFs, using, Kokoro for TTS and NiceGUI for GUI.
 .\scripts\utility.py
 ```
 
-### Other
-- T.B.A.
+### Requirements
+- Python 3.12 - It may work on other versions of python however, I will not be testing.
+- Windows 10 - It will likely work on windows 11. Obviously Windows 8.1 cannot install Python 3.12.
+
+### Development
+- Further development possible, TBA.
