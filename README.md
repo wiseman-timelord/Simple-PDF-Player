@@ -5,7 +5,7 @@ Status: Alpha; Working on it.
 Its a WinAmp style player of PDFs, using, Kokoro for TTS and NiceGUI for GUI.
 
 ### Preview
-![Image Missing][https://raw.githubusercontent.com/wiseman-timelord/Simple-PDF-Player/refs/heads/main/media/simple-pdf-player.jpg]
+![Image Missing](https://raw.githubusercontent.com/wiseman-timelord/Simple-PDF-Player/refs/heads/main/media/simple-pdf-player.jpg)
 
 ### Structure
 ```
