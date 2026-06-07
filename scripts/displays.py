@@ -14,9 +14,17 @@ def update_progress():
     if progress_label:
         progress_label.text = utility.get_progress()
         
-    # Update play/pause icon dynamically
+    # Update play/pause icon dynamically:
+    # - Playing   → show pause icon (clicking will pause)
+    # - Paused    → show play icon with a visual hint (clicking will resume)
+    # - Stopped   → show plain play icon (clicking will play from current position)
     if play_button:
-        play_button.props(f'icon={"stop" if temporary.app_state["is_playing"] else "play_arrow"}')
+        if temporary.app_state["is_playing"]:
+            play_button.props('icon=pause color=white')
+        elif temporary.app_state["is_paused"]:
+            play_button.props('icon=play_arrow color=amber')   # amber tint = paused/resumable
+        else:
+            play_button.props('icon=play_arrow color=white')
 
 def build_ui():
     global progress_label, play_button
@@ -42,7 +50,7 @@ def build_ui():
             ui.button('⏮', on_click=skip_start).props('flat rounded size=lg color=white').tooltip('Skip Start')
             ui.button('⏹', on_click=stop).props('flat rounded size=lg color=white').tooltip('Stop')
             
-            play_button = ui.button(on_click=play_resume).props('flat rounded size=lg color=white icon=play_arrow').tooltip('Play/Resume')
+            play_button = ui.button(on_click=play_pause).props('flat rounded size=lg color=white icon=play_arrow').tooltip('Play / Pause')
             
             ui.button('📖', on_click=skip_chapter).props('flat rounded size=lg color=white').tooltip('Next Chapter')
             ui.button('📄', on_click=skip_page).props('flat rounded size=lg color=white').tooltip('Next Page')
@@ -59,11 +67,18 @@ def skip_start():
     update_progress()
 
 def stop():
-    speach.stop_playback()
+    speach.stop_playback()          # clears is_playing and is_paused
+    update_progress()               # reset icon immediately, don't wait for timer
 
-def play_resume():
-    if not temporary.app_state["is_playing"]:
+def play_pause():
+    """Toggles between playing and paused. If stopped, starts fresh from current position."""
+    if temporary.app_state["is_playing"]:
+        # Currently playing → pause (hold position)
+        speach.pause_playback()
+    else:
+        # Paused or stopped → start/resume from current position
         speach.start_playback()
+    update_progress()
 
 def skip_page():
     was_playing = temporary.app_state["is_playing"]

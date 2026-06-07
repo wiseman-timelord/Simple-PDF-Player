@@ -89,6 +89,7 @@ def start_playback():
         
     temporary.app_state["stop_flag"] = False
     temporary.app_state["is_playing"] = True
+    temporary.app_state["is_paused"] = False
     
     def worker():
         while not temporary.app_state["stop_flag"]:
@@ -121,7 +122,16 @@ def start_playback():
     temporary.app_state["tts_thread"] = threading.Thread(target=worker, daemon=True)
     temporary.app_state["tts_thread"].start()
 
-def stop_playback():
+def pause_playback():
+    """Pauses playback, holding the current position so it can be resumed."""
     temporary.app_state["stop_flag"] = True
     temporary.app_state["is_playing"] = False
+    temporary.app_state["is_paused"] = True
+    sd.stop()
+
+def stop_playback():
+    """Stops playback entirely and clears the paused state."""
+    temporary.app_state["stop_flag"] = True
+    temporary.app_state["is_playing"] = False
+    temporary.app_state["is_paused"] = False
     sd.stop()

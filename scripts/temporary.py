@@ -9,6 +9,7 @@ app_state = {
     "current_page": 0,
     "current_char_index": 0,
     "is_playing": False,
+    "is_paused": False,   # True when paused mid-playback (position is held, audio is stopped)
     "tts_thread": None,
     "stop_flag": False,
     "voice": "af_heart",
