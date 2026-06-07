@@ -45,7 +45,7 @@ Its a WinAmp style player of PDFs, using, Kokoro for TTS and NiceGUI for GUI.
 ```
 
 ### Notation
-- You may create a shortcut for the batch on your taskbar by using in the target box of the shortcut, for example `cmd /c "c:\full\path\to\batch\Simple-Pdf-Player.bat", then dragging that onto the taskbar.
+- You may create a shortcut for the batch on your taskbar by using in the target box of the shortcut, for example `cmd /c "c:\full\path\to\batch\Simple-Pdf-Player.bat", then change shortcut icon, then dragging that onto the taskbar.
 
 ### Development
 - Further development possible, TBA.
