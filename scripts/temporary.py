@@ -18,5 +18,5 @@ app_state = {
     
     # UI Window Dimensions (Adjust these to change the default player size)
     "window_width": 650,
-    "window_height": 300
+    "window_height": 350
 }

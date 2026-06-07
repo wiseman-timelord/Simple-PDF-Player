@@ -8,7 +8,19 @@ from scripts import utility
 # ===============================================================================
 
 progress_label = None
+filename_label = None
 play_button = None
+
+def update_filename():
+    if filename_label:
+        path = temporary.app_state.get("pdf_path")
+        if path:
+            import os
+            name = os.path.splitext(os.path.basename(path))[0]
+            truncated = name[:50] + '…' if len(name) > 50 else name
+            filename_label.text = truncated
+        else:
+            filename_label.text = 'No file loaded'
 
 def update_progress():
     if progress_label:
@@ -27,7 +39,7 @@ def update_progress():
             play_button.props('icon=play_arrow color=white')
 
 def build_ui():
-    global progress_label, play_button
+    global progress_label, filename_label, play_button
     
     # Inject custom CSS to remove default body margins and prevent scrollbars
     ui.add_head_html('''<style>
@@ -40,9 +52,14 @@ def build_ui():
         # Titlebar
         ui.label('Simple-PDF-Player').classes('text-h5 text-weight-bold')
 
+        # Filename Display
+        filename_label = ui.label('No file loaded').classes(
+            'text-subtitle1 text-center text-grey-8'
+        )
+
         # Progress Display
         progress_label = ui.label('C0/W0/p0/P0 / C0/W0/p0/P0').classes(
-            'text-subtitle1 text-center q-mt-md q-pa-sm bg-grey-9 rounded'
+            'text-subtitle1 text-center q-mt-md q-pa-sm bg-grey-8 rounded'
         )
 
         # Controls
@@ -118,6 +135,7 @@ async def open_file():
     if result:
         utility.load_pdf(result)
         utility.save_persistent()
+        update_filename()
         update_progress()
 
 def open_config():

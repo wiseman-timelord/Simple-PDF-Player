@@ -87,7 +87,7 @@ def load_persistent():
             temporary.app_state["voice"] = data.get("voice", "af_heart")
             temporary.app_state["speed"] = data.get("speed", 1.0)
             temporary.app_state["window_width"] = data.get("window_width", 650)
-            temporary.app_state["window_height"] = data.get("window_height", 300)
+            temporary.app_state["window_height"] = data.get("window_height", 330)
 
 def shutdown():
     print("===============================================================================")
