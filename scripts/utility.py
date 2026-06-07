@@ -73,8 +73,8 @@ def save_persistent():
         "voice": temporary.app_state["voice"],
         "speed": temporary.app_state["speed"],
         "last_file": temporary.app_state["pdf_path"],
-        "window_width": temporary.app_state.get("window_width", 650),
-        "window_height": temporary.app_state.get("window_height", 300)
+        "window_width": temporary.app_state.get("window_width", 640),
+        "window_height": temporary.app_state.get("window_height", 320)
     }
     with open(os.path.join("data", "persistent.json"), "w") as f:
         json.dump(data, f, indent=4)
@@ -86,8 +86,8 @@ def load_persistent():
             data = json.load(f)
             temporary.app_state["voice"] = data.get("voice", "af_heart")
             temporary.app_state["speed"] = data.get("speed", 1.0)
-            temporary.app_state["window_width"] = data.get("window_width", 650)
-            temporary.app_state["window_height"] = data.get("window_height", 330)
+            temporary.app_state["window_width"] = data.get("window_width", 640)
+            temporary.app_state["window_height"] = data.get("window_height", 320)
 
 def shutdown():
     print("===============================================================================")
