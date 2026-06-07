@@ -4,6 +4,13 @@ Status: Alpha; Working on it.
 ### Description
 Its a WinAmp style player of PDFs, using, Kokoro for TTS and NiceGUI for GUI.
 
+### Features
+- Continuous play, without gaps in audio.
+- Program now may launch without terminal.
+- Button bar with tool tips.
+- File label detail, fitted window size.
+- Persistent settings via Json.
+
 ### Preview
 ![Image Missing](https://raw.githubusercontent.com/wiseman-timelord/Simple-PDF-Player/refs/heads/main/media/simple-pdf-player.jpg)
 
