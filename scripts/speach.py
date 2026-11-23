@@ -6,20 +6,95 @@ from scripts import temporary
 import re
 
 # ===============================================================================
-#     Simple-PDF-Player: TTS Engine
+#     Simple-PDF-Player: TTS Engine (lazy load / unload)
 # ===============================================================================
 
 pipeline = None
+_pipeline_lock = threading.Lock()
 
 def get_pipeline():
-    """Lazy-loads the Kokoro TTS pipeline so it doesn't slow down app startup."""
+    """
+    Lazy-loads the Kokoro TTS pipeline.
+    Callers that need the models (start_playback) should ensure loading
+    has completed and temporary.app_state["models_loaded"] is True.
+    """
     global pipeline
-    if pipeline is None:
-        from kokoro import KPipeline
-        print("[*] Initializing Kokoro TTS Pipeline...")
-        pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
-        print("[*] Kokoro TTS Pipeline ready.")
-    return pipeline
+    with _pipeline_lock:
+        if pipeline is None:
+            from kokoro import KPipeline
+            print("[*] Initializing Kokoro TTS Pipeline...")
+            pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
+            print("[*] Kokoro TTS Pipeline ready.")
+            temporary.app_state["models_loaded"] = True
+        return pipeline
+
+def unload_pipeline():
+    """Release the Kokoro pipeline and free memory when no more playback is needed."""
+    global pipeline
+    with _pipeline_lock:
+        if pipeline is not None:
+            print("[*] Unloading Kokoro TTS Pipeline...")
+            # Best-effort cleanup; Kokoro / torch may still hold some resources
+            try:
+                del pipeline
+            except Exception:
+                pass
+            pipeline = None
+            # Encourage GC of large model tensors
+            try:
+                import gc
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                gc.collect()
+            except Exception:
+                pass
+            temporary.app_state["models_loaded"] = False
+            print("[*] Kokoro TTS Pipeline unloaded.")
+
+def ensure_models_loaded(status_callback=None):
+    """
+    Ensure the TTS pipeline is loaded. Calls status_callback("loading") / 
+    status_callback("ready") if provided so the UI can show messages.
+    Returns True on success, False on failure.
+    """
+    if temporary.app_state.get("models_loaded") and pipeline is not None:
+        return True
+    temporary.app_state["models_loading"] = True
+    if status_callback:
+        status_callback("loading")
+    try:
+        get_pipeline()
+        temporary.app_state["models_loading"] = False
+        if status_callback:
+            status_callback("ready")
+        return True
+    except Exception as e:
+        print(f"[ERROR] Failed to load TTS models: {e}")
+        temporary.app_state["models_loading"] = False
+        temporary.app_state["models_loaded"] = False
+        if status_callback:
+            status_callback("error")
+        return False
+
+def unload_models_if_idle(status_callback=None):
+    """
+    Unload models only when we are truly finished (no more playlist items
+    and not currently playing/paused).
+    """
+    if not temporary.app_state.get("models_loaded"):
+        return
+    # Don't unload while still playing or paused mid-document
+    if temporary.app_state.get("is_playing") or temporary.app_state.get("is_paused"):
+        return
+    temporary.app_state["models_loading"] = True
+    if status_callback:
+        status_callback("unloading")
+    unload_pipeline()
+    temporary.app_state["models_loading"] = False
+    if status_callback:
+        status_callback("standby")
+
 
 def split_into_chunks(text, max_chars=500):
     """Splits text into smaller chunks at sentence endings for smoother TTS playback."""
@@ -81,29 +156,38 @@ def synthesise_chunk(text_chunk):
 _QUEUE_DONE = object()
 
 # Queue size: how many pre-generated chunks to buffer ahead of playback.
-# 2 means we keep up to 2 chunks ready and waiting while the current one plays.
 _LOOKAHEAD = 2
 
 
-def start_playback():
+def start_playback(status_callback=None, on_document_finished=None):
+    """
+    Start (or resume) playback.
+    status_callback(msg) is called with "loading" / "ready" / "error" so UI can update.
+    on_document_finished() is called when the current document reaches the end
+    (so the UI / playlist logic can decide whether to advance or unload models).
+    """
     if not temporary.app_state["doc"]:
         return
+
+    # Ensure models are loaded before starting threads
+    if not ensure_models_loaded(status_callback=status_callback):
+        temporary.app_state["is_playing"] = False
+        temporary.app_state["is_paused"] = False
+        return
+
+    # Capture the generation at the moment this playback session starts.
+    my_generation = temporary.app_state["playback_generation"]
 
     temporary.app_state["stop_flag"] = False
     temporary.app_state["is_playing"] = True
     temporary.app_state["is_paused"] = False
 
-    # audio_queue carries tuples of (audio_data: np.ndarray, chars_spoken: int)
-    # or the _QUEUE_DONE sentinel.
     audio_queue = queue.Queue(maxsize=_LOOKAHEAD)
 
-    # ------------------------------------------------------------------
-    # PRODUCER: walks pages/chunks and synthesises audio into the queue.
-    # Runs ahead of playback so audio is ready before it's needed.
-    # ------------------------------------------------------------------
     def producer():
         try:
-            while not temporary.app_state["stop_flag"]:
+            while (not temporary.app_state["stop_flag"] and
+                   temporary.app_state["playback_generation"] == my_generation):
                 page_idx = temporary.app_state["current_page"]
                 if page_idx >= len(temporary.app_state["text_data"]):
                     break
@@ -112,9 +196,6 @@ def start_playback():
                 remaining_text = page_data["text"][temporary.app_state["current_char_index"]:]
 
                 if not remaining_text.strip():
-                    # Advance to next page (consumer hasn't touched page state here,
-                    # it's safe because only the producer drives the page cursor while
-                    # the consumer only advances current_char_index via a callback).
                     temporary.app_state["current_page"] += 1
                     temporary.app_state["current_char_index"] = 0
                     continue
@@ -122,68 +203,65 @@ def start_playback():
                 chunks = split_into_chunks(remaining_text)
 
                 for chunk in chunks:
-                    if temporary.app_state["stop_flag"]:
+                    if (temporary.app_state["stop_flag"] or
+                            temporary.app_state["playback_generation"] != my_generation):
                         return
 
                     audio_data, chars = synthesise_chunk(chunk)
 
-                    if temporary.app_state["stop_flag"]:
+                    if (temporary.app_state["stop_flag"] or
+                            temporary.app_state["playback_generation"] != my_generation):
                         return
 
-                    # Block here if the queue is full (consumer is still playing
-                    # the previous chunks). This naturally applies back-pressure so
-                    # we don't synthesise the entire book into RAM.
-                    while not temporary.app_state["stop_flag"]:
+                    while (not temporary.app_state["stop_flag"] and
+                           temporary.app_state["playback_generation"] == my_generation):
                         try:
                             audio_queue.put((audio_data, chars), timeout=0.1)
                             break
                         except queue.Full:
                             continue
 
-                # After all chunks on this page are queued, advance page state
-                if not temporary.app_state["stop_flag"]:
+                if (not temporary.app_state["stop_flag"] and
+                        temporary.app_state["playback_generation"] == my_generation):
                     temporary.app_state["current_page"] += 1
                     temporary.app_state["current_char_index"] = 0
 
         finally:
-            # Always signal the consumer that we're done, even on exception/stop
             try:
                 audio_queue.put(_QUEUE_DONE, timeout=1.0)
             except queue.Full:
                 pass
 
-    # ------------------------------------------------------------------
-    # CONSUMER: pulls synthesised audio from the queue and plays it.
-    # Blocks only during actual audio playback, not during synthesis.
-    # ------------------------------------------------------------------
     def consumer():
-        while not temporary.app_state["stop_flag"]:
+        finished_naturally = False
+        while (not temporary.app_state["stop_flag"] and
+               temporary.app_state["playback_generation"] == my_generation):
             try:
                 item = audio_queue.get(timeout=0.2)
             except queue.Empty:
                 continue
 
             if item is _QUEUE_DONE:
+                finished_naturally = True
                 temporary.app_state["is_playing"] = False
                 break
 
             audio_data, chars = item
 
             if audio_data is None:
-                # Chunk synthesised to silence (e.g. whitespace-only) — just
-                # advance the char counter and move on without any audio gap.
                 temporary.app_state["current_char_index"] += chars
                 audio_queue.task_done()
                 continue
 
-            if temporary.app_state["stop_flag"]:
+            if (temporary.app_state["stop_flag"] or
+                    temporary.app_state["playback_generation"] != my_generation):
                 audio_queue.task_done()
                 break
 
-            # Play the chunk and wait for it to finish
             sd.play(audio_data, samplerate=24000)
             while sd.get_stream() is not None and sd.get_stream().active:
-                if temporary.app_state["stop_flag"]:
+                if (temporary.app_state["stop_flag"] or
+                        temporary.app_state["playback_generation"] != my_generation):
                     sd.stop()
                     audio_queue.task_done()
                     return
@@ -192,10 +270,20 @@ def start_playback():
             temporary.app_state["current_char_index"] += chars
             audio_queue.task_done()
 
+        if temporary.app_state["playback_generation"] == my_generation:
+            temporary.app_state["is_playing"] = False
+
+        # Document reached the end → let UI / playlist decide next action
+        if finished_naturally and on_document_finished and \
+                temporary.app_state["playback_generation"] == my_generation:
+            try:
+                on_document_finished()
+            except Exception as e:
+                print(f"[ERROR] on_document_finished callback failed: {e}")
+
     producer_thread = threading.Thread(target=producer, daemon=True, name="tts-producer")
     consumer_thread = threading.Thread(target=consumer, daemon=True, name="tts-consumer")
 
-    # Store both so stop/pause can signal them via stop_flag
     temporary.app_state["tts_thread"] = consumer_thread
     temporary.app_state["_producer_thread"] = producer_thread
 
@@ -208,6 +296,7 @@ def pause_playback():
     temporary.app_state["stop_flag"] = True
     temporary.app_state["is_playing"] = False
     temporary.app_state["is_paused"] = True
+    temporary.app_state["playback_generation"] += 1
     sd.stop()
 
 
@@ -216,4 +305,5 @@ def stop_playback():
     temporary.app_state["stop_flag"] = True
     temporary.app_state["is_playing"] = False
     temporary.app_state["is_paused"] = False
+    temporary.app_state["playback_generation"] += 1
     sd.stop()
