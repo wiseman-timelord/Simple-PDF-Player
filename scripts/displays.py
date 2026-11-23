@@ -104,12 +104,7 @@ def build_ui():
 
         # ---- Title ----
         ui.label('Simple-PDF-Player').classes('text-h6 text-weight-bold text-center w-full q-mb-xs')
-
-        # ---- Top Add / Remove ----
-        with ui.row().classes('w-full items-center justify-center q-gutter-sm section-bar'):
-            ui.button('Add', on_click=add_pdfs_to_playlist).props('flat dense color=white').tooltip('Add PDF file(s)')
-            ui.button('Remove', on_click=remove_selected).props('flat dense color=white').tooltip('Remove selected from playlist')
-
+        
         # ---- Playlist (drop zone + scrollable list) ----
         drop_zone = ui.element('div').classes('playlist-drop-zone w-full q-mb-xs').style(
             'flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden;'
