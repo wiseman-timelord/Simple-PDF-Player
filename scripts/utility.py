@@ -90,16 +90,14 @@ def get_progress():
     return f"C{cur_c}/W{cur_w}/p{cur_p}/P{cur_P} / C{max_c}/W{max_w}/p{max_p}/P{max_P}"
 
 def save_program():
-    """Save program settings (voice, speed, window sizes, playlist window state) to data/program.json"""
+    """Save program settings (voice, speed, window size, sort mode) to data/program.json"""
     data = {
         "voice": temporary.app_state["voice"],
         "speed": temporary.app_state["speed"],
         "last_file": temporary.app_state["pdf_path"],
         "window_width": temporary.app_state.get("window_width", 740),
-        "window_height": temporary.app_state.get("window_height", 350),
-        "playlist_open": temporary.app_state.get("playlist_open", False),
-        "playlist_width": temporary.app_state.get("playlist_width", 740),
-        "playlist_height": temporary.app_state.get("playlist_height", 400),
+        "window_height": temporary.app_state.get("window_height", 560),
+        "playlist_sort_mode": temporary.app_state.get("playlist_sort_mode", 0),
     }
     os.makedirs("data", exist_ok=True)
     with open(os.path.join("data", "program.json"), "w") as f:
@@ -120,10 +118,8 @@ def load_program():
             temporary.app_state["voice"] = data.get("voice", "af_heart")
             temporary.app_state["speed"] = data.get("speed", 1.0)
             temporary.app_state["window_width"] = data.get("window_width", 740)
-            temporary.app_state["window_height"] = data.get("window_height", 350)
-            temporary.app_state["playlist_open"] = data.get("playlist_open", False)
-            temporary.app_state["playlist_width"] = data.get("playlist_width", 740)
-            temporary.app_state["playlist_height"] = data.get("playlist_height", 400)
+            temporary.app_state["window_height"] = data.get("window_height", 560)
+            temporary.app_state["playlist_sort_mode"] = data.get("playlist_sort_mode", 0)
 
 # Backward-compatible aliases
 load_persistent = load_program

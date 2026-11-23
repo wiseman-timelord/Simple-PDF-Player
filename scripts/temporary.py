@@ -16,22 +16,27 @@ app_state = {
     "voice": "af_heart",
     "speed": 1.0,
     "totals": {"chars": 0, "words": 0, "paragraphs": 0, "pages": 0},
-    
-    # UI Window Dimensions
+
+    # UI Window Dimensions (taller to fit integrated playlist + player)
     "window_width": 740,
-    "window_height": 350,
+    "window_height": 560,
 
     # Playlist support
     "playlist": [],           # list of absolute PDF file paths
-    "playlist_index": -1,     # currently selected / playing index in playlist (-1 = none)
+    "playlist_index": -1,     # currently playing index in playlist (-1 = none)
+    "playlist_selected": [],  # list of selected indices (multi-select)
+    "playlist_sort_mode": 0,  # 0=AlphaNum 1=FilSiz-SmLg 2=FilSiz-LgSm 3=DateOldNew 4=DateNewOld
     "playback_generation": 0, # incremented on every stop/load to invalidate stale TTS threads
-
-    # Playlist window state (saved in program.json)
-    "playlist_open": False,
-    "playlist_width": 740,
-    "playlist_height": 400,
 
     # TTS model lifecycle
     "models_loaded": False,   # True once Kokoro pipeline has been successfully created
     "models_loading": False,  # True while models are being loaded or unloaded
 }
+
+SORT_LABELS = [
+    "AlphaNum",
+    "FilSiz-SmLg",
+    "FilSiz-LgSm",
+    "DateOldNew",
+    "DateNewOld",
+]
