@@ -39,7 +39,7 @@ def main():
     
     # Configure native window properties from temporary.py globals
     app.native.window_args['width'] = temporary.app_state.get("window_width", 740)
-    app.native.window_args['height'] = temporary.app_state.get("window_height", 350)
+    app.native.window_args['height'] = temporary.app_state.get("window_height", 560)
     app.native.window_args['resizable'] = True  
     
     # Build the NiceGUI Interface

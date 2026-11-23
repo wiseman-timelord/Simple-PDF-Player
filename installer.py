@@ -213,10 +213,8 @@ def main():
             "speed": 1.0,
             "last_file": None,
             "window_width": 740,
-            "window_height": 350,
-            "playlist_open": False,
-            "playlist_width": 740,
-            "playlist_height": 400,
+            "window_height": 560,
+            "playlist_sort_mode": 0,
         }
         with open("data/program.json", "w", encoding="utf-8") as f:
             json.dump(program_defaults, f, indent=4)
