@@ -14,7 +14,9 @@ Its a WinAmp style player of PDFs, using, Kokoro for TTS and NiceGUI for GUI.
 - Popup configuration box.
 
 ### Preview
-- Heres what things are looking like currently...
+- Heres what things were looking like in v0.12...
+![Image Missing](https://raw.githubusercontent.com/wiseman-timelord/Simple-PDF-Player/refs/heads/main/media/main_window.jpg)
+- Heres what things were looking like in v0.10...
 ![Image Missing](https://raw.githubusercontent.com/wiseman-timelord/Simple-PDF-Player/refs/heads/main/media/player_window.jpg)
 ![Image Missing](https://raw.githubusercontent.com/wiseman-timelord/Simple-PDF-Player/refs/heads/main/media/playlist_window.jpg)
 
